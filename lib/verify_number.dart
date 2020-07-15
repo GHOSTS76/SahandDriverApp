@@ -4,17 +4,17 @@ import 'InputNumber.dart';
 import 'package:dio/dio.dart';
 import 'dart:math';
 import 'package:progress_dialog/progress_dialog.dart';
-class input_number extends StatefulWidget{
+class verify_number extends StatefulWidget{
   @override
   State<StatefulWidget> createState() {
     // TODO: implement createState
-    return input_numberState();
+    return verify_numberState();
   }
 
 }
 
 ProgressDialog LoadingPr ;
-class input_numberState extends State<input_number> {
+class verify_numberState extends State<verify_number> {
   TextEditingController numberController;
   var InputTextField, EnterBitton;
 
@@ -107,22 +107,21 @@ class input_numberState extends State<input_number> {
 
   void GotoNext() {
     _openLoadingDialog(context);
-    var rng = new Random();
-    CheckNumber('0' + numberController.text,rng.nextInt(9768));
+    CheckNumber('0' + numberController.text);
   }
 
-  void SendSms(number, code) async {
-    print('CODEEE'+code.toString());
+  void SendSms(number) async {
+    var code;
     FormData formData = FormData.fromMap({
-      "MessageTxt":'راننده گرامی خوش امدید کد ورود شما : '+ code.toString(),
       "Mobile": number,
+      "User":'Driver',
     });
     try {
       Response response = await Dio().post("https://sahandtehran.ir:3000/Sms/Sms",data:formData);
-      print(response);
-      print(response.statusCode);
+      code = response.data.toString();
+      print('CCC'+code);
       String finalText = 'کدفعالسازی به شماره ' + numberController.text + 'ارسال شد.';
-      Navigator.push(context, MaterialPageRoute(builder: (context) => new verify_number(finalText,code,numberController.text)));
+      Navigator.push(context, MaterialPageRoute(builder: (context) => new input_Number(finalText,int.parse(code),numberController.text)));
       print(finalText);
     } catch (e) {
       print(e);
@@ -151,8 +150,8 @@ class input_numberState extends State<input_number> {
       },
     );
   }
-  void CheckNumber(number,code) async {
 
+  void CheckNumber(number) async {
     FormData formData = FormData.fromMap({
       "Number":number,
     });
@@ -160,7 +159,7 @@ class input_numberState extends State<input_number> {
       Response response = await Dio().post("https://sahandtehran.ir:3000/DriverLogin/CheckDriverNumber",data:formData);
       if(response.data.toString() =='DriverExist'){
 
-        SendSms('0' + numberController.text, code);
+        SendSms('0' + numberController.text);
 
       }else if(response.data.toString() == 'DriverNotExist'){
         Navigator.pop(context);

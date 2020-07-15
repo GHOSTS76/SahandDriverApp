@@ -1,5 +1,3 @@
-import 'dart:math';
-import 'package:rnd/rnd.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
@@ -7,21 +5,21 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:sahanddriver/HomePage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class verify_number extends StatefulWidget{
+class input_Number extends StatefulWidget{
   final String tezxt;
   final  int ConfCode;
   final String UserNumber;
   @override
   State<StatefulWidget> createState() {
     // TODO: implement createState
-    return verify_numberState();
+    return input_NumberState();
   }
-  verify_number(this.tezxt,this.ConfCode,this.UserNumber);
+  input_Number(this.tezxt,this.ConfCode,this.UserNumber);
 
 }
 
 
-class verify_numberState extends State<verify_number> with TickerProviderStateMixin
+class input_NumberState extends State<input_Number> with TickerProviderStateMixin
 {
   final myController = TextEditingController();
   var TipText,InputTextField,timerText;
@@ -167,21 +165,19 @@ void _openLoadingDialog(BuildContext context) {
     },
   );
 }
+
+
 void CreateToken(number,context) async {
-  Random myRand = Random();
   FormData formData = FormData.fromMap({
-    "id":myRand(1003,9876),
-    "Token":myRand(1020,9400).toString()+number+myRand(4599,8321).toString(),
-    "ExpireDate":'SomeDate',
     "UserId":number,
-    "TypeApp":'Passenger',
   });
   try {
-    Response response = await Dio().post("",data:formData);
-    if(response.data.toString() =='TokenCreated'){
+    Response response = await Dio().post("https://sahandtehran.ir:3000/Token/CreateToken",data:formData);
+    if(response.data.toString() !='Error:304'){
+      print('Create token Response : '+ response.data.toString());
       //addStringToSF();
       //SaveUserNumber(number);
-      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>new Directionality(textDirection: TextDirection.rtl, child:  HomePage())),(Route<dynamic> route) => false);
+      SaveUserNumber(number,context);
 
     }else{
       Fluttertoast.showToast(
@@ -199,10 +195,17 @@ void CreateToken(number,context) async {
   }
 }
 
+
+
+
+
+
+
 addStringToSF(UserNumber,Context) async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   prefs.setString('IsLogedIn', "True");
-  SaveUserNumber(UserNumber,Context);
+  CreateToken(UserNumber,Context);
+
 
 }
 

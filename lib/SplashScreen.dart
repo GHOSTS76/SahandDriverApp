@@ -26,7 +26,8 @@ class SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    GetToken();
+
+    deletprefs();
 
   }
 
@@ -53,7 +54,6 @@ class SplashScreenState extends State<SplashScreen> {
   }
 
   checkLogin() async {
-    // PlNotifications.showMessage(context, Text('الان میایم'));
     getStringValuesSF();
   }
 
@@ -135,36 +135,5 @@ class SplashScreenState extends State<SplashScreen> {
         )
     ), onWillPop: () => Future(() => false))
     ;
-  }
-  GetToken() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String Numbr = '0'+prefs.getString('UserNumber');
-    print('StartworkNumber' + Numbr);
-    print('Gettoken');
-    FormData formData = FormData.fromMap({
-      "Number":Numbr,
-    });
-    try {
-      Response response = await Dio().post(
-          "https://sahandtehran.ir:3000/Token/GetTokenByPhone", data: formData, options: Options(
-            extra: RetryOptions(
-              retries: 0,
-              retryInterval: const Duration(seconds: 1000),
-            ).toExtra(),
-          ));
-      print('Token REsponse : : '+response.data.toString());
-      if (response.data.toString() == 'err') {
-        //SaveUserLogin();
-      } else {
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        prefs.setString('UserToken',response.data.toString());
-        print('Your Token IS'+response.data.toString());
-        deletprefs();
-      }
-    } catch (e) {
-      print("ErrorTokenCheck" + e.toString());
-    }
-
-
   }
 }

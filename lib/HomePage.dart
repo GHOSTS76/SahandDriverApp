@@ -66,6 +66,7 @@ class MyHomePageState extends State<HomePage> {
                 child:
                 Padding(padding: EdgeInsets.only(top: 20),child: new Align(alignment: Alignment.topCenter,child:new Align(alignment: Alignment.topCenter,child:
                 Column(
+
                   children: <Widget>[
                     new Align(
                       alignment: Alignment.topCenter,

@@ -44,7 +44,6 @@ class StartOfWorkState extends State<StartOfWork> {
     Wakelock.enable();
     timer = Timer.periodic(Duration(seconds: 20), (Timer t) =>setstatefor());
     UpdateTravelDetails();
-
   }
   @override
   void dispose() {
@@ -54,7 +53,6 @@ class StartOfWorkState extends State<StartOfWork> {
     SetDriverIsOnline('0');
     super.dispose();
   }
-
   final appbar = AppBar(
       backgroundColor: new Color(0xffffffff),
       elevation: 6.0,
@@ -70,7 +68,6 @@ class StartOfWorkState extends State<StartOfWork> {
         ],
       ),
   );
-
   @override
   Widget build(BuildContext context) {
     var Array;
@@ -127,7 +124,6 @@ class StartOfWorkState extends State<StartOfWork> {
         },),
     ), onWillPop: () => Future(() => false));
   }
-
   // ignore: non_constant_identifier_names
   UpdateTravelState(State) async {
     print('UpdateIntravelStatefirstLine');
@@ -194,7 +190,7 @@ class StartOfWorkState extends State<StartOfWork> {
       print(e);
     }
   }
-   GetDriverData() async {
+  GetDriverData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String Numbr = prefs.getString('UserNumber');
     print('StartworkNumber' + Numbr);
@@ -235,9 +231,7 @@ class StartOfWorkState extends State<StartOfWork> {
     });
     socket.connect();
     socket.on('connect', (_) {
-
-      print('FindRdiverSocketConnected');
-
+      socket.emit('SubmitId',NatCode);
     });
   }
   _ListenToDriverAccept()  {
@@ -247,16 +241,11 @@ class StartOfWorkState extends State<StartOfWork> {
     );
   }
   void GotoNext(data) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('DataToPass',data);
-    print('111'+data);
-    Map<String, dynamic> user  = jsonDecode(data);
-   print('DriverId = '+user['DriverId']);
-    if(user['DriverId']== NatCode){
+    print('Data::'+data.toString());
       socket.close();
       socket.destroy();
-      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>new Directionality(textDirection: TextDirection.rtl, child:  TravelRequest())),(Route<dynamic> route) => true);
-    }
+      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>new Directionality(textDirection: TextDirection.rtl, child:  TravelRequest(data))),(Route<dynamic> route) => true);
+
   }
   Future GetLocation() async {
 
@@ -287,7 +276,6 @@ class StartOfWorkState extends State<StartOfWork> {
     PresentLoc = retvalue;
     return retvalue;
   }
-
   SetDriverIsOnline(IsOnline) async {
     FormData formData = FormData.fromMap({
       "Driverid": NatCode,

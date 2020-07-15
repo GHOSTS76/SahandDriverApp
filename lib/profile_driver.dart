@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:dio_retry/dio_retry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -153,6 +154,32 @@ class ProfileDriverState extends State<profliedriver>{
 
 
   }
+  void TerminateToken(userToken,context) async {
+    FormData formData = FormData.fromMap({
+      "UserToken":userToken,
+    });
+    try {
+      Response response = await Dio().post("https://sahandtehran.ir:3000/Token/TerminateToken",data:formData);
+      if(response.data.toString() !='Error:304'){
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        prefs.clear();
+        Navigator.of(context).pushNamed('/InputNumber');
+      }else{
+        Fluttertoast.showToast(
+            msg: "مشکلی وجود دارد.لطفا دوباره امتحان کنید.",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.CENTER,
+            timeInSecForIosWeb: 1,
+            backgroundColor: Colors.yellowAccent,
+            textColor: Colors.white,
+            fontSize: 16.0
+        );
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+
   UpdateTravelStateoff(State) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
   var natcode=  prefs.getString('NationalCode');
@@ -165,9 +192,7 @@ class ProfileDriverState extends State<profliedriver>{
       Response response = await dio.post('https://sahandtehran.ir:3000/DriverMain/UpdateDriverReadyToWork',data:formData);
       print('UpdateDriver'+response.toString());
       if(response.toString() =='Updated'){
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        prefs.clear();
-        Navigator.of(context).pushNamed('/InputNumber');
+        TerminateToken(PhoneNumber,context);
       }
     } catch (e) {
       print(e);

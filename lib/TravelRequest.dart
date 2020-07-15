@@ -14,15 +14,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart';
 import 'package:wakelock/wakelock.dart';
 class TravelRequest extends StatefulWidget{
+   var TripData;
   @override
   State<StatefulWidget> createState() {
     // TODO: implement createState
     return TravelRequestState();
   }
+  TravelRequest(this.TripData);
 }
 class TravelRequestState extends State<TravelRequest>  with TickerProviderStateMixin{
+
+
   var StartTime;
-  //Future _future;
   Socket socket;
   var datas;
   final myController = TextEditingController();
@@ -42,8 +45,6 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
   @override
   void initState() {
     super.initState();
-
-  //  _future = GetDataFrom();
     _ConnectSocket();
     _ListenToDriverAccept2();
     dio = Dio()..interceptors.add(RetryInterceptor(
@@ -355,7 +356,6 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
     });
 
   }
-
   SetDriverIsOnline(IsOnline) async {
     FormData formData = FormData.fromMap({
       "Driverid": NatCode,
@@ -372,7 +372,6 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
       print(e);
     }
   }
-
   _ListenToDriverAccept2()  {
     socket.on('TripAcceptedDriver', (data) =>
         GotoNext(data)
@@ -382,7 +381,7 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
     timer.cancel();
     print('DeclineWorks');
     socket.emit('DriverDeclineDriver','false');
-    VehicleFRequestCancel();
+  //  VehicleFRequestCancel();
   }
   CreateJson() async {
   var DriverPos =  await GetLocation();
@@ -396,9 +395,7 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
     tripMap['DriverId'] = DriverId;
     tripMap['UserId'] = PassengerID;
     tripMap['DriverPos'] = DriverPos;
-    tripMap['StartPoint'] = Location;
-    tripMap['EndPint'] = EndPoint;
-    tripMap['SecondLocation'] = SecondLoc;
+    tripMap['DriverPos'] = DriverPos;
     socket.emit('TripAccepted', [jsonEncode(tripMap)]);
   }
   void AcceptTravel() async {
@@ -457,7 +454,10 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
     if(DId == DriverId){
       print('TripId = '+TripId);
       print('VehicleFRequestA');
-      VehicleRequest();
+      print('PPP'+EndPoint);
+      socket.disconnect();
+      socket.destroy();
+      Navigator.push(context, MaterialPageRoute(builder: (context) => new Directionality(textDirection: TextDirection.rtl, child:  MainRequestAccept(StartAddres,EndAddress,Location,EndPoint,TripId,SecondLocation,backforth,PassengerID,Sid))));
     }
 
   }
@@ -483,7 +483,7 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
         EndAddress= Address['formatted_address'] ;
       }
   }
-   GetDateTime() async {
+  GetDateTime() async {
     FormData formData = FormData.fromMap({
       "RequestType": 'Full',
     });
@@ -509,10 +509,7 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
       Response response = await dio.post("https://sahandtehran.ir:3000/DriverMain/VehicleFleetRequest", data: formData);
       print('VehicleFRequestAAa Resp'+response.data.toString());
       if(response.data.toString() == 'Done'){
-        print('PPP'+EndPoint);
-        socket.disconnect();
-        socket.destroy();
-        Navigator.push(context, MaterialPageRoute(builder: (context) => new Directionality(textDirection: TextDirection.rtl, child:  MainRequestAccept(StartAddres,EndAddress,Location,EndPoint,TripId,SecondLocation,backforth,PassengerID,Sid))));
+
       }
     } catch (e) {
       print(e);
@@ -535,6 +532,7 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
     }
   }
 }
+
 Future GetLocation() async {
   Location location = new Location();
   bool _serviceEnabled;
