@@ -10,6 +10,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong/latlong.dart';
 import 'package:location/location.dart';
 import 'package:sahanddriver/MainRequestAccept.dart';
+import 'package:sahanddriver/startofwork.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart';
 import 'package:wakelock/wakelock.dart';
@@ -28,6 +29,7 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
   var StartTime;
   Socket socket;
   var datas;
+  String Numbr;
   final myController = TextEditingController();
   var TipText,InputTextField,timerText;
   static const int kStartValue = 30;
@@ -35,9 +37,9 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
   var StartLocationArray,EndLocationArray;
   var lat,lang;
   var StartAddres,EndAddress,dio;
-  String Location,TripId;
+  String TripId;
   int s = 0;
-  var EndPoint,StartPoint,SecondLocation,SecondLoc,DriverId,_ParsedData,backforth,PassengerID,Sid;
+  var EndPoint,StartPoint,SecondLocation,SecondLoc,backforth,PassengerID;
   AudioCache _audioCache;
   bool SoundState= true;
   var NatCode;
@@ -352,7 +354,7 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
     });
     socket.connect();
     socket.on('connect', (_) {
-      socket.emit('SubmitId',NatCode);
+        socket.emit('SubmitId',NatCode);
     });
 
   }
@@ -378,11 +380,17 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
     );
   }
   DeclineTravel() async {
+    print('DeclineTripId :: '+TripId);
+    print('DeclineNumbr :: '+NatCode);
     timer.cancel();
     print('DeclineWorks');
-    socket.emit('DriverDeclineDriver','false');
-  //  VehicleFRequestCancel();
+    Map<String, dynamic> DeclineMap = new Map();
+    DeclineMap['rideId'] = TripId;
+    DeclineMap['driverId'] = Numbr;
+    socket.emit('DriverDeclineTrip',jsonEncode(DeclineMap));
+    Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>new Directionality(textDirection: TextDirection.rtl, child:  StartOfWork())),(Route<dynamic> route) => true);
   }
+
   CreateJson() async {
   var DriverPos =  await GetLocation();
     print('ClickedAcceptTravelJson');
@@ -392,10 +400,10 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
       SecondLoc = SecondLocation;
     }
     Map<String, dynamic> tripMap = new Map();
-    tripMap['DriverId'] = DriverId;
+    tripMap['DriverId'] = NatCode;
+    tripMap['DriverPos'] = DriverPos;
+    tripMap['TripID'] = TripId;
     tripMap['UserId'] = PassengerID;
-    tripMap['DriverPos'] = DriverPos;
-    tripMap['DriverPos'] = DriverPos;
     socket.emit('TripAccepted', [jsonEncode(tripMap)]);
   }
   void AcceptTravel() async {
@@ -407,24 +415,27 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
   Future<Stream> GetDataFrom() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     SoundState = prefs.getBool('GuideSound');
+    if(SoundState == null || SoundState =='null'){
+      SoundState = true;
+    }
      NatCode = prefs.getString('NationalCode');
-    datas = prefs.getString('DataToPass');
+     Numbr = prefs.getString('UserNumber');
+    datas = widget.TripData;
     print('SettedData'+datas.toString());
     Map<String, dynamic> user  = jsonDecode(datas);
-    PassengerID = user['UserId'];
-     StartPoint = user['StartPoint'];
-    SecondLocation = user['SecondLocation'];
-    backforth = user['Backandforth'];
-    DriverId = user['DriverId'];
-    Sid = user['sid'];
-     Location = StartPoint;
-    StartLocationArray = Location.split(',');
-    await GeoLocation(StartLocationArray[0].toString(), StartLocationArray[1].toString(),'StartLoc');
-     EndPoint = user['EndPint'];
-    print('EndLoc = '+EndPoint);
-    EndLocationArray = EndPoint.split(',');
-   await GeoLocation(EndLocationArray[0].toString(), EndLocationArray[1].toString(),'EndLoc');
-
+    PassengerID = user['passenger_id'];
+    StartPoint = user['start_lat_lng'];
+    SecondLocation = user['extra_destinations'];
+    backforth = user['BackAndForth'];
+    TripId = user['id'];
+    StartAddres = user['StartAddress'];
+    EndAddress = user['EndAddress'];
+    EndPoint = user['dest_lat_lng'];
+    String Start,End;
+    Start = StartPoint;
+    End = EndPoint;
+    StartLocationArray =  Start.split(',');
+    EndLocationArray =  End.split(',');
    try{
      print(SoundState.toString());
      if(SoundState){
@@ -433,56 +444,22 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
          _audioCache.play('newride.mp3');
          s++;
        }else{
-
        }
-
      }
    }catch(ex){
-
    }
     return Stream.value(true);
   }
   GotoNext(Data) async {
-    if(SoundState){
-
+    print('gotonextWorks');
+    if(SoundState) {
       _audioCache.play('ride_accepted.mp3');
     }
-    print('GetTripGotoNextRun');
-    _ParsedData = await jsonDecode(Data.toString());
-    TripId = _ParsedData[0].toString();
-    var DId = _ParsedData[1].toString();
-    if(DId == DriverId){
-      print('TripId = '+TripId);
-      print('VehicleFRequestA');
-      print('PPP'+EndPoint);
       socket.disconnect();
       socket.destroy();
-      Navigator.push(context, MaterialPageRoute(builder: (context) => new Directionality(textDirection: TextDirection.rtl, child:  MainRequestAccept(StartAddres,EndAddress,Location,EndPoint,TripId,SecondLocation,backforth,PassengerID,Sid))));
-    }
+      Navigator.push(context, MaterialPageRoute(builder: (context) => new Directionality(textDirection: TextDirection.rtl, child:  MainRequestAccept(StartAddres,EndAddress,StartPoint,EndPoint,TripId,SecondLocation,backforth.toString(),PassengerID))));
+  }
 
-  }
-  GeoLocation(lat,lang,type) async{
-    print('GeoLoc');
-      Dio dio = new Dio();
-      dio.options.baseUrl = 'https://api.neshan.org/v2/reverse?lat='+lat+'&lng='+lang;
-      dio.interceptors.add(InterceptorsWrapper(
-          onRequest: (Options option) async{
-            //my function to recovery token
-            option.headers = {
-              "Api-Key": "service.59CAYTheayRa460Vq3xiHHYG524mPgSVpvvooMDy"
-            };
-          }
-      ));
-      Response response = await dio.get('https://api.neshan.org/v2/reverse?lat='+lat+'&lng='+lang);
-      print(response);
-    print('GeoLoc2');
-      Map<String, dynamic> Address  = jsonDecode(response.toString());
-      if(type == 'StartLoc'){
-       StartAddres= Address['formatted_address'] ;
-      }else if(type == 'EndLoc'){
-        EndAddress= Address['formatted_address'] ;
-      }
-  }
   GetDateTime() async {
     FormData formData = FormData.fromMap({
       "RequestType": 'Full',
@@ -491,42 +468,6 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
       Response response = await dio.post("https://sahandtehran.ir:3000/DriverMain/GetDateTime", data: formData);
       print('TimeResponse'+response.data.toString());
       StartTime = response.data.toString();
-    } catch (e) {
-      print(e);
-    }
-  }
-  VehicleRequest() async {
-    print(TripId);
-    print(DriverId);
-    print(StartTime);
-    FormData formData = FormData.fromMap({
-      "RideId": TripId,
-      "driver_id": DriverId,
-      "ReferenceDate": StartTime,
-      "Accepted": '1',
-    });
-    try {
-      Response response = await dio.post("https://sahandtehran.ir:3000/DriverMain/VehicleFleetRequest", data: formData);
-      print('VehicleFRequestAAa Resp'+response.data.toString());
-      if(response.data.toString() == 'Done'){
-
-      }
-    } catch (e) {
-      print(e);
-    }
-  }
-  VehicleFRequestCancel() async {
-    FormData formData = FormData.fromMap({
-      "RideId": TripId,
-      "driver_id": DriverId,
-      "ReferenceDate": StartTime,
-      "Accepted": '0',
-    });
-    try {
-      Response response = await dio.post("https://sahandtehran.ir:3000/DriverMain/VehicleFleetRequest", data: formData);
-      if(response.data.toString() == 'Done'){
-        Navigator.of(context).pushNamed('/StartOfWork');
-      }
     } catch (e) {
       print(e);
     }
@@ -555,7 +496,7 @@ Future GetLocation() async {
   _locationData = await location.getLocation();
   var lat = _locationData.latitude;
   var long = _locationData.longitude;
-  String retvalue = lat.toString() + ':' + long.toString();
+  String retvalue = lat.toString() + ',' + long.toString();
   return retvalue;
 }
 class Countdown extends AnimatedWidget {

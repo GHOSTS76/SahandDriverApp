@@ -43,7 +43,7 @@ class Sahand extends StatelessWidget{
         "/TravelHistoryDetails" : (context) => new Directionality(textDirection: TextDirection.rtl, child:  TravelDetails('0')),
         "/TravelRequest" : (context) => new Directionality(textDirection: TextDirection.rtl, child:  TravelRequest('0')),
         "/PerformanceReport" : (context) => new Directionality(textDirection: TextDirection.rtl, child:  Performance()),
-        "/MainRequestAccept" : (context) => new Directionality(textDirection: TextDirection.rtl, child:  MainRequestAccept('Def','Def',0.0,0.0,'id','0','0','0','s')),
+        "/MainRequestAccept" : (context) => new Directionality(textDirection: TextDirection.rtl, child:  MainRequestAccept('Def','Def',0.0,0.0,'id','0','0','0')),
       },
     );
   }

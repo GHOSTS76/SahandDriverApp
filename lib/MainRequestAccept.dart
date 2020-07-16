@@ -18,7 +18,7 @@ import 'package:latlong/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock/wakelock.dart';
 class MainRequestAccept extends StatefulWidget{
-  final String Origin,Destination,TripId,SecLoc,BackandForth,PassengerID,sid;
+  final String Origin,Destination,TripId,SecLoc,BackandForth,PassengerID;
   final  OriginLoc,DestinationLoc;
 
   @override
@@ -27,7 +27,7 @@ class MainRequestAccept extends StatefulWidget{
     // TODO: implement createState
     return MainRequestAcceptState();
   }
-  MainRequestAccept(this.Destination,this.Origin,this.DestinationLoc,this.OriginLoc,this.TripId,this.SecLoc,this.BackandForth,this.PassengerID,this.sid);
+  MainRequestAccept(this.Destination,this.Origin,this.DestinationLoc,this.OriginLoc,this.TripId,this.SecLoc,this.BackandForth,this.PassengerID);
 }
 class MainRequestAcceptState extends State<MainRequestAccept>{
   var UpdateDriverLat,UpdateDriverLong;
@@ -39,7 +39,6 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
   static bool CancelVisivle = true;
   var StartLocationArray,EndLocationArray;
   var Passengerid;
-  var sid;
   var PassengerNameFam;
   Timer timer;
   var NatCode,dio;
@@ -312,11 +311,9 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
    Future<bool> getdata() async {
     GetLocationForUpdate();
         Passengerid = widget.PassengerID.toString();
-        sid = widget.sid.toString();
         OriginStr = widget.Origin.toString();
         DestinationStr = widget.Destination.toString();
         StartPoint = widget.OriginLoc.toString();
-        sid = widget.sid.toString();
         EndPoint = widget.DestinationLoc.toString();
         StartLocationArray = StartPoint.split(',');
         StartLat= StartLocationArray[0];
@@ -387,7 +384,6 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
     prefs.setString('SecondLocation',SecondLocation);
     prefs.setString('TripIdStr',TripIdStr);
     prefs.setString('BackAndForthStr',BackAndForthStr);
-    prefs.setString('sid',sid);
   }
 
   SaveTravelStage() async {
@@ -403,7 +399,6 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
     DiverArrivedMap['TripId'] = TripIdStr;
     DiverArrivedMap['pickup_lat_lng'] = PickupLatLong;
     DiverArrivedMap['start_lat_lng'] = EndPoint;
-    DiverArrivedMap['sid'] = sid;
     socket.emit('DriverArrived', [jsonEncode(DiverArrivedMap)]);
     setState(() {
       DownBtn = 'مسافر سوار شد';
@@ -418,7 +413,6 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
     Map<String, dynamic> EndTravelMap = new Map();
     EndTravelMap['TripId'] = TripIdStr;
     EndTravelMap['end_lat_lng'] = EndLoc;
-    EndTravelMap['sid'] = sid;
     socket.emit('EndTravel', [jsonEncode(EndTravelMap)]);
     await deletePrefs();
     await socket.disconnect();
@@ -450,7 +444,6 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
     Map<String, dynamic> PassengerPickUp = new Map();
     PassengerPickUp['TripId'] = TripIdStr;
     PassengerPickUp['pickup_lat_lng'] = PickupLatLong;
-    PassengerPickUp['sid'] = sid;
     socket.emit('PassengetPickUp', [jsonEncode(PassengerPickUp)]);
     setState(() {
       print('SecondLocation!!! '+SecondLocation);
@@ -475,7 +468,6 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
     print('BackAndForth');
     Map<String, dynamic> EndTravel = new Map();
     EndTravel['TripId'] = TripIdStr;
-    EndTravel['sid'] = sid;
     socket.emit('BackAndForth', [jsonEncode(EndTravel)]);
     setState(() {
     DownBtn = 'پایان سفر';
@@ -483,28 +475,11 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
     });
     SaveTravelStage();
   }
-//  ArriveToSecond() async {
-//    print('ArriveToFirst');
-//    Map<String, dynamic> ArriveTofirst = new Map();
-//    ArriveTofirst['TripId'] = TripIdStr;
-//    ArriveTofirst['sid'] = sid;
-//    socket.emit('ArriveToFirst', [jsonEncode(ArriveTofirst)]);
-//    setState(() {
-//      if(BackAndForthStr == 'false'){
-//        DownBtn = 'پایان سفر';
-//        Arrival=2;
-//      }else{
-//        DownBtn = 'بازگشت به مبدا';
-//        Arrival=4;
-//      }
-//    });
-//  }
-//
+
   ArriveTofirst() async {
     print('ArriveToFirst');
     Map<String, dynamic> ArriveTofirst = new Map();
     ArriveTofirst['TripId'] = TripIdStr;
-    ArriveTofirst['sid'] = sid;
     socket.emit('ArriveToFirst', [jsonEncode(ArriveTofirst)]);
     setState(() {
       if(BackAndForthStr == 'false'){
@@ -522,7 +497,6 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
     Map<String, dynamic> CancelTripMap = new Map();
     CancelTripMap['TripId'] = TripIdStr;
     CancelTripMap['canceledBy'] = 'Driver';
-    CancelTripMap['sid'] = sid;
     socket.emit('CancelDriverToClient', [jsonEncode(CancelTripMap)]);
     Fluttertoast.showToast(
         msg: "سفر با موفقیت کنسل شد.",

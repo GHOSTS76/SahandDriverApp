@@ -198,6 +198,7 @@ class MyHomePageState extends State<HomePage> {
       },
     );
   }
+
   SetDriverIsOnline(IsOnline) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
    var NatCode = prefs.getString('NationalCode');
