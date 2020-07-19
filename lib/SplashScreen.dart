@@ -16,8 +16,11 @@ class SplashScreen extends StatefulWidget{
 
 }
 class SplashScreenState extends State<SplashScreen> {
-  String LoginState;
-
+  var dio;
+  String Token;
+  String Numbr;
+  String IsloggedIn;
+  String NatCode;
   StartTime() {
     var duration = new Duration(seconds: 5);
     return new Timer(duration, checkLogin);
@@ -27,84 +30,124 @@ class SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
-    deletprefs();
+
+    dio = Dio()..interceptors.add(RetryInterceptor(
+        options: const RetryOptions(
+          retries: 2, // Number of retries before a failure
+          retryInterval: const Duration(seconds: 10), // Interval between each retry
+        )
+    ));
+    FirstFunc();
 
   }
-
-
   navigationPage(Page) {
     Navigator.of(context).pushNamed('/' + Page);
   }
-
-  getStringValuesSF() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String stringValue = prefs.getString('IsLogedIn');
-    var intravel = prefs.getString('Intravel');
-    LoginState = stringValue;
-    if (LoginState == "True") {
-      if (intravel == "True") {
-        GetResumeData();
-      } else if (intravel == 'False' || intravel == null) {
-        navigationPage('HomePage');
-      }
-    } else {
-      print('not true');
+  DeterminePage() async {
+    if(IsloggedIn == 'True'){
+      SelectActiveRide(NatCode,Token);
+    }else{
       navigationPage('InputNumber');
     }
   }
-
   checkLogin() async {
-    getStringValuesSF();
+    DeterminePage();
   }
-
-  deletprefs() async {
-    // SharedPreferences prefs = await SharedPreferences.getInstance();
-    // prefs.remove('Intravel');
-    //   prefs.remove('Stage');
-    //   prefs.remove('DownBtnText');
-    //  prefs.remove('Passengerid');
-    //  prefs.remove('OriginStr');
-    //   prefs.remove('DestinationStr');
-    // prefs.remove('StartPoint');
-    //  prefs.remove('EndPoint');
-    // prefs.remove('SecondLocation');
-    // prefs.remove('TripIdStr');
-    //   prefs.remove('BackAndForthStr');
+  FirstFunc() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    Numbr = prefs.getString('UserNumber');
+    Token = prefs.getString('UserToken');
+    NatCode=  prefs.getString('NationalCode');
+    IsloggedIn = prefs.getString('IsLogedIn');
     StartTime();
   }
-  GetResumeData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    var Passengerid = prefs.getString('Passengerid');
-    var OriginStr = prefs.getString('OriginStr');
-    var DestinationStr = prefs.getString('DestinationStr');
-    var StartPoint = prefs.getString('StartPoint');
-    var EndPoint = prefs.getString('EndPoint');
-    var SecondLocation = prefs.getString('SecondLocation');
-    var sid = prefs.getString('sid');
-    var TripIdStr = prefs.getString('TripIdStr');
-    var BackAndForthStr = prefs.getString('BackAndForthStr');
-    print('Values ><');
-    print('OriginStr' + OriginStr);
-    print('DestinationStr' + DestinationStr);
-    print('Passengerid' + Passengerid);
-    print('StartPoint' + StartPoint);
-    print('EndPoint' + EndPoint);
-    print('SecondLocation' + SecondLocation);
-    print('TripIdStr' + TripIdStr);
-    print('BackAndForthStr' + BackAndForthStr);
+  GetResumeData(PassengerId,OriginStr,DestinationStr,StartPoint,EndPoint,SecondLocation,TripIdStr,BackAndForthStr,Stage,DownBtnText) async {
     Navigator.push(context, MaterialPageRoute(builder: (context) =>
     new Directionality(textDirection: TextDirection.rtl,
       child: new Directionality(textDirection: TextDirection.rtl, child:
       MainRequestAccept(
-          OriginStr,
-          DestinationStr,
-          StartPoint,
-          EndPoint,
-          TripIdStr,
-          SecondLocation,
-          BackAndForthStr,
-          Passengerid,
+        OriginStr,
+        DestinationStr,
+        StartPoint,
+        EndPoint,
+        TripIdStr,
+        SecondLocation,
+        BackAndForthStr,
+        PassengerId,
+          Stage,
+          DownBtnText
       )),)));
+  }
+  SelectActiveRide(DriverID,UserToken) async {
+
+    print(DriverID);
+    print(UserToken);
+
+    FormData formData = FormData.fromMap({
+      "DriverID":DriverID,
+      "UserTokenCheck":UserToken,
+    });
+    try {
+      Response response = await dio.post("https://sahandtehran.ir:3000/Ride/GetActiveRidesDriver",data:formData);
+      print(response.data.toString());
+      if(response.data.toString() == 'NoActiveRide'){
+        navigationPage('HomePage');
+      }else if(response.data.toString() == 'TokenIsOffline'){
+        Fluttertoast.showToast(
+            msg: "توکن منقضی شده است.لطفا دوباره وارد شوید.",
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.CENTER,
+            timeInSecForIosWeb: 1,
+            backgroundColor: Colors.red,
+            textColor: Colors.white,
+            fontSize: 16.0
+        );
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        prefs.clear();
+        navigationPage('InputNumber');
+      }else{
+        var Stage;
+        var DownBtnText;
+        Stage =  response.data['status'];
+        print('Status : '+Stage);
+        if(Stage == '0'){
+          Stage ='0';
+          DownBtnText = 'من رسیدم';
+        }
+        else if(Stage == '1'){
+          Stage ='1';
+          DownBtnText = 'مسافر سوار شد';
+        }else if(Stage =='2'){
+          print('Status two : '+Stage);
+          var BackAndForthStr = response.data['BackAndForth'].toString();
+          print('BackAndForth '+BackAndForthStr);
+          if(BackAndForthStr == '0'){
+            DownBtnText = 'پایان سفر';
+            Stage ='2';
+          }else{
+            DownBtnText = 'بازگشت به مبدا';
+            Stage ='4';
+          }
+        }else if(Stage =='3'){
+          DownBtnText = 'بازگشت به مبدا';
+          Stage ='4';
+        }else if(Stage =='4'){
+          print('Stage four Rans');
+          var PassengerScore = response.data['PassengerScore'].toString();
+          print('PassengerScore  '+ PassengerScore);
+          if(PassengerScore == 'NULL' || PassengerScore == 'null'){
+            print('LAPAI');
+            Stage ='6';
+            DownBtnText = 'پایان سفر';
+          }
+        }
+        print('Stage Here : '+Stage);
+        print('BtnTxt : '+Stage);
+        GetResumeData(response.data['passenger_id'],response.data['StartAddress'],response.data['EndAddress'],response.data['start_lat_lng'],response.data['dest_lat_lng'],response.data['extra_destinations'],response.data['id'],response.data['BackAndForth'].toString(),Stage,DownBtnText);
+      }
+    } catch (e) {
+      print(e);
+    }
   }
 
 

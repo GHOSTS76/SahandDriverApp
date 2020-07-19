@@ -173,8 +173,11 @@ void CreateToken(number,context) async {
   });
   try {
     Response response = await Dio().post("https://sahandtehran.ir:3000/Token/CreateToken",data:formData);
+    print(response.data.toString());
     if(response.data.toString() !='Error:304'){
       print('Create token Response : '+ response.data.toString());
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      prefs.setString('UserToken', response.data.toString());
       //addStringToSF();
       //SaveUserNumber(number);
       SaveUserNumber(number,context);
@@ -204,7 +207,7 @@ void CreateToken(number,context) async {
 addStringToSF(UserNumber,Context) async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   prefs.setString('IsLogedIn', "True");
-  CreateToken(UserNumber,Context);
+  CreateToken('0'+UserNumber,Context);
 
 
 }

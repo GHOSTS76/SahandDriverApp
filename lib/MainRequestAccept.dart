@@ -18,7 +18,7 @@ import 'package:latlong/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock/wakelock.dart';
 class MainRequestAccept extends StatefulWidget{
-  final String Origin,Destination,TripId,SecLoc,BackandForth,PassengerID;
+  final String Origin,Destination,TripId,SecLoc,BackandForth,PassengerID,Stage,DownBtnText;
   final  OriginLoc,DestinationLoc;
 
   @override
@@ -27,13 +27,14 @@ class MainRequestAccept extends StatefulWidget{
     // TODO: implement createState
     return MainRequestAcceptState();
   }
-  MainRequestAccept(this.Destination,this.Origin,this.DestinationLoc,this.OriginLoc,this.TripId,this.SecLoc,this.BackandForth,this.PassengerID);
+  MainRequestAccept(this.Destination,this.Origin,this.DestinationLoc,this.OriginLoc,this.TripId,this.SecLoc,this.BackandForth,this.PassengerID,this.Stage,this.DownBtnText);
 }
 class MainRequestAcceptState extends State<MainRequestAccept>{
   var UpdateDriverLat,UpdateDriverLong;
   Future _future;
+  var IsTravelFinished = false;
   bool SoundState = true;
-  String OriginStr='def',DestinationStr='def',StartPoint,EndPoint,StartLat,StartLong,EndLat,EndLong,DownBtn,SecondLocation,BackAndForthStr;
+  String OriginStr='def',DestinationStr='def',StartPoint,EndPoint,StartLat,StartLong,EndLat,EndLong,DownBtn='def',SecondLocation,BackAndForthStr;
   static String TripIdStr;
   int Arrival = 0;
   static bool CancelVisivle = true;
@@ -290,17 +291,20 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
   }
 
   firsttimeCalled() async {
-
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    var Stage = prefs.getInt('Stage');
-    print('Stage ++'+Stage.toString());
+    var Stage = int.parse(widget.Stage);
+    print('Stage First: '+Stage.toString());
+    print('BtnFirs First: '+widget.DownBtnText.toString());
+    print('Stage : '+Stage.toString());
     if(Stage == null){
       Arrival = 0;
       DownBtn = 'من رسیدم';
     }else{
-      if(Stage < 4 && Stage >0){
-        Arrival = Stage;
-        DownBtn = prefs.getString('DownBtnText');
+      if(Stage <= 4 && Stage >0){
+        Arrival =Stage;
+        DownBtn = widget.DownBtnText.toString();
+      }else if(Stage == 6){
+        DownBtn='اتمام سفر';
+        IsTravelFinished = true;
       }else{
         Arrival = 0;
         DownBtn = 'من رسیدم';
@@ -333,8 +337,11 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
         await GetPassengerName();
         TravelDetailes();
     print('StartLocAAA'+EndPoint);
-    SaveResumeData(OriginStr,DestinationStr,StartPoint,EndPoint,TripIdStr,SecondLocation,BackAndForthStr,Passengerid);
+    //  SaveResumeData(OriginStr,DestinationStr,StartPoint,EndPoint,TripIdStr,SecondLocation,BackAndForthStr,Passengerid);
     SetDriverIsOnline('1');
+    if(IsTravelFinished == true){
+      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>new Directionality(textDirection: TextDirection.rtl, child:  EndTravel(TripIdStr))),(Route<dynamic> route) => false);
+    }
     return true;
   }
 
@@ -373,46 +380,49 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
 
 
 
-  SaveResumeData(OriginStr,DestinationStr,StartPoint,EndPoint,TripIdStr,SecondLocation,BackAndForthStr,Passengerid) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('Intravel','True');
-    prefs.setString('Passengerid',Passengerid);
-    prefs.setString('OriginStr',OriginStr);
-    prefs.setString('DestinationStr',DestinationStr);
-    prefs.setString('StartPoint',StartPoint);
-    prefs.setString('EndPoint',EndPoint);
-    prefs.setString('SecondLocation',SecondLocation);
-    prefs.setString('TripIdStr',TripIdStr);
-    prefs.setString('BackAndForthStr',BackAndForthStr);
-  }
-
-  SaveTravelStage() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setInt('Stage',Arrival);
-    prefs.setString('DownBtnText',DownBtn);
-  }
+//  SaveResumeData(OriginStr,DestinationStr,StartPoint,EndPoint,TripIdStr,SecondLocation,BackAndForthStr,Passengerid) async {
+//    SharedPreferences prefs = await SharedPreferences.getInstance();
+//    prefs.setString('Intravel','True');
+//    prefs.setString('Passengerid',Passengerid);
+//    prefs.setString('OriginStr',OriginStr);
+//    prefs.setString('DestinationStr',DestinationStr);
+//    prefs.setString('StartPoint',StartPoint);
+//    prefs.setString('EndPoint',EndPoint);
+//    prefs.setString('SecondLocation',SecondLocation);
+//    prefs.setString('TripIdStr',TripIdStr);
+//    prefs.setString('BackAndForthStr',BackAndForthStr);
+//  }
+//
+//  SaveTravelStage() async {
+//    SharedPreferences prefs = await SharedPreferences.getInstance();
+//    prefs.setInt('Stage',Arrival);
+//    prefs.setString('DownBtnText',DownBtn);
+//  }
 
   DriverArrived() async {
     print('DriverArrivedCalled');
-    var PickupLatLong = await GetLocation();
+    var PickupLatLong = await GetLocation(StartPoint);
     Map<String, dynamic> DiverArrivedMap = new Map();
     DiverArrivedMap['TripId'] = TripIdStr;
     DiverArrivedMap['pickup_lat_lng'] = PickupLatLong;
     DiverArrivedMap['start_lat_lng'] = EndPoint;
+    DiverArrivedMap['UserId'] = Passengerid;
+
     socket.emit('DriverArrived', [jsonEncode(DiverArrivedMap)]);
     setState(() {
       DownBtn = 'مسافر سوار شد';
       Arrival=1;
       CancelVisivle =false;
     });
-    SaveTravelStage();
+    //SaveTravelStage();
   }
   EndTravelF() async {
     print('EndTravel');
-    var EndLoc = await GetLocation();
+    var EndLoc = await GetLocation(StartPoint);
     Map<String, dynamic> EndTravelMap = new Map();
     EndTravelMap['TripId'] = TripIdStr;
     EndTravelMap['end_lat_lng'] = EndLoc;
+    EndTravelMap['UserId'] = Passengerid;
     socket.emit('EndTravel', [jsonEncode(EndTravelMap)]);
     await deletePrefs();
     await socket.disconnect();
@@ -422,7 +432,6 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
   deletePrefs() async {
     print('DELETEPREFSWORKS');
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.remove('Intravel');
     prefs.remove('Stage');
     prefs.remove('DownBtnText');
     prefs.remove('Passengerid');
@@ -440,10 +449,11 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
 
   PassengerPickup() async {
     print('PassengerPickedUp');
-    var PickupLatLong = await GetLocation();
+    var PickupLatLong = await GetLocation(StartPoint);
     Map<String, dynamic> PassengerPickUp = new Map();
     PassengerPickUp['TripId'] = TripIdStr;
     PassengerPickUp['pickup_lat_lng'] = PickupLatLong;
+    PassengerPickUp['UserId'] = Passengerid;
     socket.emit('PassengetPickUp', [jsonEncode(PassengerPickUp)]);
     setState(() {
       print('SecondLocation!!! '+SecondLocation);
@@ -452,7 +462,7 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
         Arrival =3;
       }else
         {
-          if(BackAndForthStr == 'true'){
+          if(BackAndForthStr == '1'){
             DownBtn = 'بازگشت به مبدا';
             Arrival=4;
           }else{
@@ -460,29 +470,31 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
             Arrival =2;
           }
         }
-      SaveTravelStage();
+      //SaveTravelStage();
     });
   }
 
-  BackAndForth()  {
+  BackAndForth(){
     print('BackAndForth');
     Map<String, dynamic> EndTravel = new Map();
     EndTravel['TripId'] = TripIdStr;
+    EndTravel['UserId'] = Passengerid;
     socket.emit('BackAndForth', [jsonEncode(EndTravel)]);
     setState(() {
     DownBtn = 'پایان سفر';
     Arrival=2;
     });
-    SaveTravelStage();
+    //SaveTravelStage();
   }
 
   ArriveTofirst() async {
     print('ArriveToFirst');
     Map<String, dynamic> ArriveTofirst = new Map();
     ArriveTofirst['TripId'] = TripIdStr;
+    ArriveTofirst['UserId'] = Passengerid;
     socket.emit('ArriveToFirst', [jsonEncode(ArriveTofirst)]);
     setState(() {
-      if(BackAndForthStr == 'false'){
+      if(BackAndForthStr == '0'){
         DownBtn = 'پایان سفر';
         Arrival=2;
       }else{
@@ -490,7 +502,7 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
         Arrival=4;
       }
     });
-    SaveTravelStage();
+   // SaveTravelStage();
   }
   CancelRequest(context) async {
     print('TripCanceled');
@@ -548,7 +560,7 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
   GetNatCode() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     NatCode = prefs.getString('NationalCode');
-    GetLocation();
+    GetLocation(StartPoint);
 
   }
   EndTravelResponseBody(data) async {
@@ -556,7 +568,7 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>new Directionality(textDirection: TextDirection.rtl, child:  EndTravel(TripIdStr))),(Route<dynamic> route) => false);
   }
   GetMessageFromDriverBody(data) async {
-    print('GetMessageFromDriverBody');
+    print('GetMessageFromUserBody');
     print(data);
     var DialogTxt='';
     var _ParsedData = await jsonDecode(data.toString());
@@ -574,7 +586,7 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
     Alert(
       context: context,
       type: AlertType.none,
-      title: "پیام راننده",
+      title: "پیام کاربر",
       desc: DialogTxt,
       buttons: [
         DialogButton(
@@ -589,9 +601,13 @@ class MainRequestAcceptState extends State<MainRequestAccept>{
     ).show();
 
   }
+
   CancelResponseBody(data) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     SoundState = prefs.getBool('GuideSound');
+    if(SoundState == null || SoundState =='null'){
+      SoundState = true;
+    }
     print('CanceledRuns');
     print(data);
  var _ParsedData = await jsonDecode(data.toString());
@@ -611,7 +627,7 @@ if(_ParsedData[0] == TripIdStr){
         fontSize: 16.0
     );
     await deletePrefs();
-
+    SetDriverIsOnline('1');
     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>new Directionality(textDirection: TextDirection.rtl, child:  StartOfWork())),(Route<dynamic> route) => false);
   }
 }
@@ -729,7 +745,8 @@ if(_ParsedData[0] == TripIdStr){
   }
 
 }
-Future GetLocation() async {
+Future GetLocation(StartPoint) async {
+  String retvalue = StartPoint;
   Location location = new Location();
   bool _serviceEnabled;
   PermissionStatus _permissionGranted;
@@ -751,6 +768,7 @@ Future GetLocation() async {
   _locationData = await location.getLocation();
   var lat = _locationData.latitude;
   var long = _locationData.longitude;
-  String retvalue = lat.toString() + ',' + long.toString();
+  retvalue = lat.toString() + ',' + long.toString();
+  print('getLocationSadam--? '+retvalue);
   return retvalue;
 }

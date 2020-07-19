@@ -386,7 +386,7 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
     print('DeclineWorks');
     Map<String, dynamic> DeclineMap = new Map();
     DeclineMap['rideId'] = TripId;
-    DeclineMap['driverId'] = Numbr;
+    DeclineMap['driverId'] = NatCode;
     socket.emit('DriverDeclineTrip',jsonEncode(DeclineMap));
     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>new Directionality(textDirection: TextDirection.rtl, child:  StartOfWork())),(Route<dynamic> route) => true);
   }
@@ -457,7 +457,7 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
     }
       socket.disconnect();
       socket.destroy();
-      Navigator.push(context, MaterialPageRoute(builder: (context) => new Directionality(textDirection: TextDirection.rtl, child:  MainRequestAccept(StartAddres,EndAddress,StartPoint,EndPoint,TripId,SecondLocation,backforth.toString(),PassengerID))));
+      Navigator.push(context, MaterialPageRoute(builder: (context) => new Directionality(textDirection: TextDirection.rtl, child:  MainRequestAccept(StartAddres,EndAddress,StartPoint,EndPoint,TripId,SecondLocation,backforth.toString(),PassengerID,'0','من رسیدم'))));
   }
 
   GetDateTime() async {
