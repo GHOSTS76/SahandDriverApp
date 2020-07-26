@@ -10,7 +10,7 @@ class Setting extends StatefulWidget{
 }
 
 class SettingState extends State<Setting>{
-  bool _lights = false;
+  bool _lights = true;
   @override
   void initState() {
     super.initState();

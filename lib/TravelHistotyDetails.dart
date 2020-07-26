@@ -282,7 +282,6 @@ class TravelDetailsState extends State<TravelDetails>{
 
   }
   GetTripData() async {
-    print('Here');
     SharedPreferences prefs = await SharedPreferences.getInstance();
     Token = prefs.getString('UserToken');
     FormData formData = FormData.fromMap({
@@ -290,24 +289,19 @@ class TravelDetailsState extends State<TravelDetails>{
       "UserTokenCheck": Token,
     });
     try {
-      print('Intry');
       Response response = await dio.post("https://sahandtehran.ir:3000/Ride/GetRide", data: formData);
       Map<String, dynamic> user  = jsonDecode(response.data);
-      print(jsonDecode(response.data).toString());
       Desteniton =   user['StartAddress'];
       Origin = user['EndAddress'];
       Date =  user['created_ts'];
-      print('DFDFDF'+user['end_ts']);
       Time = user['end_ts'];
       price = user['total_price'];
       destLocation = user['start_lat_lng'];
       var DesArray = destLocation.toString().split(',');
-      print('DestenArray'+DesArray.toString());
       destLat = DesArray[0];
       destLong = DesArray[1];
       OriginLocation = user['end_lat_lng'];
       var OriginArray = OriginLocation.toString().split(',');
-      print('OriginArray'+OriginArray.toString());
       OriginLat = OriginArray[0];
       OriginLong = OriginArray[1];
       return true;

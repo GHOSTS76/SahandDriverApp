@@ -17,20 +17,15 @@ class SplashScreen extends StatefulWidget{
 }
 class SplashScreenState extends State<SplashScreen> {
   var dio;
-  String Token;
-  String Numbr;
-  String IsloggedIn;
-  String NatCode;
+  String Token,NatCode,Numbr,IsloggedIn;
+
   StartTime() {
     var duration = new Duration(seconds: 5);
     return new Timer(duration, checkLogin);
   }
-
   @override
   void initState() {
     super.initState();
-
-
     dio = Dio()..interceptors.add(RetryInterceptor(
         options: const RetryOptions(
           retries: 2, // Number of retries before a failure
@@ -38,7 +33,6 @@ class SplashScreenState extends State<SplashScreen> {
         )
     ));
     FirstFunc();
-
   }
   navigationPage(Page) {
     Navigator.of(context).pushNamed('/' + Page);
@@ -134,17 +128,34 @@ class SplashScreenState extends State<SplashScreen> {
         }else if(Stage =='4'){
           print('Stage four Rans');
           var PassengerScore = response.data['PassengerScore'].toString();
-          print('PassengerScore  '+ PassengerScore);
+          print('PassengerScore-->'+ PassengerScore);
           if(PassengerScore == 'NULL' || PassengerScore == 'null'){
-            print('LAPAI');
             Stage ='6';
             DownBtnText = 'پایان سفر';
+          }else{
+            Stage = '00';
           }
         }
         print('Stage Here : '+Stage);
         print('BtnTxt : '+Stage);
-        GetResumeData(response.data['passenger_id'],response.data['StartAddress'],response.data['EndAddress'],response.data['start_lat_lng'],response.data['dest_lat_lng'],response.data['extra_destinations'],response.data['id'],response.data['BackAndForth'].toString(),Stage,DownBtnText);
-      }
+        if(Stage =='00'){
+          navigationPage('HomePage');
+        }else {
+          GetResumeData(
+              response.data['passenger_id'],
+              response.data['StartAddress'],
+              response.data['EndAddress'],
+              response.data['start_lat_lng'],
+              response.data['dest_lat_lng'],
+              response.data['extra_destinations'],
+              response.data['id'],
+              response.data['BackAndForth'].toString(),
+              Stage,
+              DownBtnText);
+        }
+        }
+
+
     } catch (e) {
       print(e);
     }

@@ -211,7 +211,6 @@ class profileCarState extends State<profliecar> {
     });
     try {
       Response response = await dio.post("https://sahandtehran.ir:3000/DriverMain/GetDriverData", data: formData);
-      print(response);
       VehiclePlate = response.data['VehiclePlate'];
       VehicleBrandLU = response.data['VehicleBrandLU'];
       VehicleModelLU = response.data['VehicleModelLU'];

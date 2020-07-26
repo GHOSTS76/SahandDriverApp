@@ -183,14 +183,13 @@ class ProfileDriverState extends State<profliedriver>{
   UpdateTravelStateoff(State) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
   var natcode=  prefs.getString('NationalCode');
-    print(State);
+
     FormData formData = FormData.fromMap({
       "DriverID":natcode,
       "State":State,
     });
     try {
       Response response = await dio.post('https://sahandtehran.ir:3000/DriverMain/UpdateDriverReadyToWork',data:formData);
-      print('UpdateDriver'+response.toString());
       if(response.toString() =='Updated'){
         TerminateToken(PhoneNumber,context);
       }
@@ -206,7 +205,6 @@ class ProfileDriverState extends State<profliedriver>{
     });
     try {
       Response response = await dio.post("https://sahandtehran.ir:3000/DriverMain/GetDriverData", data: formData);
-      print(response);
       DriverName = response.data['FName'] + ' '+ response.data['LName'];
       PhoneNumber =response.data['MobileNo'];
       EmailAddress = response.data['Email'];

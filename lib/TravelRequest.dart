@@ -24,18 +24,13 @@ class TravelRequest extends StatefulWidget{
   TravelRequest(this.TripData);
 }
 class TravelRequestState extends State<TravelRequest>  with TickerProviderStateMixin{
-
-
-  var StartTime;
   Socket socket;
   var datas;
   String Numbr;
   final myController = TextEditingController();
-  var TipText,InputTextField,timerText;
   static const int kStartValue = 30;
   AnimationController _controller;
   var StartLocationArray,EndLocationArray;
-  var lat,lang;
   var StartAddres,EndAddress,dio;
   String TripId;
   int s = 0;
@@ -44,34 +39,34 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
   bool SoundState= true;
   var NatCode;
   Timer timer;
+  Map<String, dynamic> tripMap = new Map();
   @override
   void initState() {
     super.initState();
-    _ConnectSocket();
+    int TimerSecs = 30;
+    timer = Timer.periodic(Duration(seconds:TimerSecs), (Timer t) =>DeclineTravel());
+   _ConnectSocket();
     _ListenToDriverAccept2();
     dio = Dio()..interceptors.add(RetryInterceptor(
         options: const RetryOptions(
           retries: 0, // Number of retries before a failure
-          retryInterval: const Duration(seconds: 1000), // Interval between each retry
+          retryInterval: const Duration(seconds: 10000), // Interval between each retry
         )
     ));
     Wakelock.enable();
-     timer = Timer.periodic(Duration(seconds: 30), (Timer t) =>DeclineTravel());
-    GetDateTime();
     _controller = new AnimationController(
       vsync: this,
       duration: new Duration(seconds: kStartValue),
     );
     _controller.forward(from: 0.0);
     _audioCache = AudioCache(prefix: "audio/", fixedPlayer: AudioPlayer()..setReleaseMode(ReleaseMode.STOP));
-    SetDriverIsOnline('1');
+    //SetDriverIsOnline('1');
   }
   @override
   void dispose() {
-    timer?.cancel();
-    socket.disconnect();
-    socket.destroy();
-    SetDriverIsOnline('0');
+    timer.cancel();
+    socket.clearListeners();
+   // SetDriverIsOnline('0');
     super.dispose();
   }
   @override
@@ -352,7 +347,10 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
       'transports': ['websocket'],
       'autoConnect': false, // optional
     });
-    socket.connect();
+    if(!socket.connected)
+      {
+        socket.connect();
+      }
     socket.on('connect', (_) {
         socket.emit('SubmitId',NatCode);
     });
@@ -365,7 +363,6 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
     });
     try {
       Response response = await dio.post("https://sahandtehran.ir:3000/DriverMain/UpdateDriverOnlineState", data: formData);
-      print(response);
       if(response.data.toString() == 'Updated'){
 
       }
@@ -379,27 +376,24 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
         GotoNext(data)
     );
   }
-  DeclineTravel() async {
-    print('DeclineTripId :: '+TripId);
-    print('DeclineNumbr :: '+NatCode);
+  DeclineTravel(){
     timer.cancel();
-    print('DeclineWorks');
+    _openLoadingDialog(context);
     Map<String, dynamic> DeclineMap = new Map();
     DeclineMap['rideId'] = TripId;
-    DeclineMap['driverId'] = NatCode;
+      DeclineMap['driverId'] = NatCode;
     socket.emit('DriverDeclineTrip',jsonEncode(DeclineMap));
     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>new Directionality(textDirection: TextDirection.rtl, child:  StartOfWork())),(Route<dynamic> route) => true);
   }
 
   CreateJson() async {
   var DriverPos =  await GetLocation();
-    print('ClickedAcceptTravelJson');
+  print('AAA'+DriverPos);
     if(SecondLocation == 'null'){
       SecondLoc = '0.00,0.00';
     }else{
       SecondLoc = SecondLocation;
     }
-    Map<String, dynamic> tripMap = new Map();
     tripMap['DriverId'] = NatCode;
     tripMap['DriverPos'] = DriverPos;
     tripMap['TripID'] = TripId;
@@ -409,7 +403,6 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
   void AcceptTravel() async {
     _openLoadingDialog(context);
     timer.cancel();
-    print('ClickedAcceptTravel');
     CreateJson();
   }
   Future<Stream> GetDataFrom() async {
@@ -421,7 +414,6 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
      NatCode = prefs.getString('NationalCode');
      Numbr = prefs.getString('UserNumber');
     datas = widget.TripData;
-    print('SettedData'+datas.toString());
     Map<String, dynamic> user  = jsonDecode(datas);
     PassengerID = user['passenger_id'];
     StartPoint = user['start_lat_lng'];
@@ -437,10 +429,8 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
     StartLocationArray =  Start.split(',');
     EndLocationArray =  End.split(',');
    try{
-     print(SoundState.toString());
      if(SoundState){
        if(s==0){
-         print('RunsHowMany!!'+ s.toString());
          _audioCache.play('newride.mp3');
          s++;
        }else{
@@ -451,27 +441,13 @@ class TravelRequestState extends State<TravelRequest>  with TickerProviderStateM
     return Stream.value(true);
   }
   GotoNext(Data) async {
-    print('gotonextWorks');
     if(SoundState) {
       _audioCache.play('ride_accepted.mp3');
     }
-      socket.disconnect();
-      socket.destroy();
+    socket.clearListeners();
       Navigator.push(context, MaterialPageRoute(builder: (context) => new Directionality(textDirection: TextDirection.rtl, child:  MainRequestAccept(StartAddres,EndAddress,StartPoint,EndPoint,TripId,SecondLocation,backforth.toString(),PassengerID,'0','من رسیدم'))));
   }
 
-  GetDateTime() async {
-    FormData formData = FormData.fromMap({
-      "RequestType": 'Full',
-    });
-    try {
-      Response response = await dio.post("https://sahandtehran.ir:3000/DriverMain/GetDateTime", data: formData);
-      print('TimeResponse'+response.data.toString());
-      StartTime = response.data.toString();
-    } catch (e) {
-      print(e);
-    }
-  }
 }
 
 Future GetLocation() async {
@@ -494,10 +470,7 @@ Future GetLocation() async {
     }
   }
   _locationData = await location.getLocation();
-  var lat = _locationData.latitude;
-  var long = _locationData.longitude;
-  String retvalue = lat.toString() + ',' + long.toString();
-  return retvalue;
+  return _locationData.latitude.toString() + ',' + _locationData.longitude.toString();
 }
 class Countdown extends AnimatedWidget {
   Countdown({ Key key, this.animation }) : super(key: key, listenable: animation);

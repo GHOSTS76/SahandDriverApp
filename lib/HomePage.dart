@@ -1,12 +1,9 @@
-import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio_retry/dio_retry.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:sahanddriver/startofwork.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:socket_io_client/socket_io_client.dart';
-
 import 'DrawerLayout.dart';
 
 class HomePage extends StatefulWidget{
@@ -33,12 +30,7 @@ class MyHomePageState extends State<HomePage> {
             retryInterval: const Duration(seconds: 10), // Interval between each retry
           )
       ));
-    SetDriverIsOnline('1');
-  }
-  @override
-  void dispose() {
-    SetDriverIsOnline('0');
-    super.dispose();
+
   }
 
   final appbar = new AppBar(
@@ -134,7 +126,7 @@ class MyHomePageState extends State<HomePage> {
                 ),)
                 ),
               ),
-              drawer: BuildDrawerLayout(context,Name,number,PicrureUrl,'شروع به کار'),
+              drawer: BuildDrawerLayout(context,Name,number,PicrureUrl,'شروع به کار',natcode),
             appBar: appbar,
             ///start building your widget tree
           ):new Center(child: CircularProgressIndicator(),) ;
@@ -142,10 +134,8 @@ class MyHomePageState extends State<HomePage> {
     ), onWillPop: () => Future(() => false));
   }
   Future GetDriverData() async {
-    print('GetdriverData Runs');
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String Numbr = prefs.getString('UserNumber');
-    print('MNNN'+Numbr);
       FormData formData = FormData.fromMap({
         "Number":Numbr,
       });
@@ -220,8 +210,7 @@ class MyHomePageState extends State<HomePage> {
 
   UpdateTravelStateoff(State) async {
     _openLoadingDialog(context);
-    print(natcode);
-    print(State);
+
     FormData formData = FormData.fromMap({
       "DriverID":natcode,
       "State":State,
@@ -239,7 +228,7 @@ class MyHomePageState extends State<HomePage> {
   }
 
   StartWorking() async {
-
+    await SetDriverIsOnline('1');
     FormData formData = FormData.fromMap({
       "State": '1',
       "MobileNo":number,
@@ -257,7 +246,6 @@ class MyHomePageState extends State<HomePage> {
   }
 
   checkToken(Token) async {
-    print('_checkTokensTARTED-->'+Token);
     FormData formData = FormData.fromMap({
         "UserTokenCheck":Token,
 
@@ -271,10 +259,8 @@ class MyHomePageState extends State<HomePage> {
               retryInterval: const Duration(seconds: 1000),
             ).toExtra(),
           ));
-      print('_checkTokenSplash-->' + response.data.toString());
-
       if (response.data.toString() == 'TokenIsOnline') {
-        UpdateTravelStateoff(1);
+        await UpdateTravelStateoff('1');
       } else {
         Fluttertoast.showToast(
             msg: "توکن منقضی شده است.لطفا دوباره وارد شوید.",
@@ -294,7 +280,6 @@ class MyHomePageState extends State<HomePage> {
   }
 
   GetToken() async {
-    print('Gettoken');
     print(number);
     FormData formData = FormData.fromMap({
         "Number":number,

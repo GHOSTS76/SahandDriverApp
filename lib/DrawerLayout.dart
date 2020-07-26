@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
+import 'package:dio_retry/dio_retry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:sahanddriver/HomePage.dart';
@@ -8,7 +9,7 @@ import 'package:sahanddriver/TravelHistory.dart';
 import 'package:sahanddriver/setting.dart';
 import 'package:sahanddriver/startofwork.dart';
 import 'package:sahanddriver/wallet.dart';
-Drawer BuildDrawerLayout(BuildContext context, var Name,var DriverNumber,var PicrureUrl,var PageName){
+Drawer BuildDrawerLayout(BuildContext context, var Name,var DriverNumber,var PicrureUrl,var PageName,var NatCode){
   return new Drawer(
 
     child: new ListView(
@@ -96,7 +97,8 @@ Drawer BuildDrawerLayout(BuildContext context, var Name,var DriverNumber,var Pic
             color: Colors.black,
           )),
           onTap: (){
-            Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>new Directionality(textDirection: TextDirection.rtl, child:  Wallet())),(Route<dynamic> route) => false);
+            Navigator.pushNamed(context, '/Wallet');
+         //   Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>new Directionality(textDirection: TextDirection.rtl, child:  Wallet())),(Route<dynamic> route) => false);
 
           },
         ),
@@ -179,9 +181,9 @@ Drawer BuildDrawerLayout(BuildContext context, var Name,var DriverNumber,var Pic
             _openLoadingDialog(context);
 
             if(PageName == 'پایان کار'){
-              StopWorking(context,DriverNumber);
+              StopWorking(context,DriverNumber,NatCode);
             }else{
-              StartWorking(context,DriverNumber);
+              StartWorking(context,DriverNumber,NatCode);
             }
           },
         )
@@ -217,7 +219,27 @@ void _openLoadingDialog(BuildContext context) {
     },
   );
 }
-StartWorking(context,DriverNumber) async {
+SetDriverIsOnline(IsOnline,NatCode,context) async {
+  var dio = Dio()..interceptors.add(RetryInterceptor(
+      options: const RetryOptions(
+        retries: 0, // Number of retries before a failure
+        retryInterval: const Duration(seconds: 10000), // Interval between each retry
+      )
+  ));
+  FormData formData = FormData.fromMap({
+    "Driverid": NatCode,
+    "DriverIsOnline":IsOnline,
+  });
+  try {
+    Response response = await dio.post("https://sahandtehran.ir:3000/DriverMain/UpdateDriverOnlineState", data: formData);
+    if(response.data.toString() == 'Updated'){
+    }
+    return true;
+  } catch (e) {
+    print(e);
+  }
+}
+StartWorking(context,DriverNumber,Natcode) async {
   _openLoadingDialog(context);
   FormData formData = FormData.fromMap({
     "State": '1',
@@ -227,14 +249,16 @@ StartWorking(context,DriverNumber) async {
     Response response = await Dio().post("https://sahandtehran.ir:3000/DriverMain/VecInout", data: formData);
     print(response);
     if(response.data.toString() == 'Done'){
-      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>new Directionality(textDirection: TextDirection.rtl, child:  StartOfWork())),(Route<dynamic> route) => false);
+     await SetDriverIsOnline('1',Natcode,context);
+     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>new Directionality(textDirection: TextDirection.rtl, child:  StartOfWork())),(Route<dynamic> route) => false);
+
     }
     return true;
   } catch (e) {
     print(e);
   }
 }
-StopWorking(context,DriverNumber) async {
+StopWorking(context,DriverNumber,Natcode) async {
   FormData formData = FormData.fromMap({
     "State": '0',
     "MobileNo":DriverNumber,
@@ -243,7 +267,8 @@ StopWorking(context,DriverNumber) async {
     Response response = await Dio().post("https://sahandtehran.ir:3000/DriverMain/VecInout", data: formData);
     print(response);
     if(response.data.toString() == 'Done'){
-      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>new Directionality(textDirection: TextDirection.rtl, child:  HomePage())),(Route<dynamic> route) => false);
+     await SetDriverIsOnline('0',Natcode,context);
+     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>new Directionality(textDirection: TextDirection.rtl, child:  HomePage())),(Route<dynamic> route) => false);
     }
     return true;
   } catch (e) {

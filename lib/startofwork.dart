@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:dio_retry/dio_retry.dart';
 import 'package:sahanddriver/TravelRequest.dart';
 import 'package:wakelock/wakelock.dart';
@@ -13,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart';
 import 'DrawerLayout.dart';
 class StartOfWork extends StatefulWidget{
+
   @override
   State<StatefulWidget> createState() {
     // TODO: implement createState
@@ -22,35 +22,30 @@ class StartOfWork extends StatefulWidget{
 }
 
 class StartOfWorkState extends State<StartOfWork> {
-  var Name, DriverNumber, NatCode,PicrureUrl,DriverNat;
+  var Name, DriverNumber, NatCode,PicrureUrl,dio;
   Future _future;
   Socket socket;
   Timer timer;
-  String PresentLoc;
-  String Loca;
-  var dio;
+  Location location = new Location();
+  String PresentLoc,Loca, Numbr ;
+
   @override
   initState() {
     super.initState();
-    _ConnectSocket();
-    _ListenToDriverAccept();
-    _future =FetureBuilder();
     dio = Dio()..interceptors.add(RetryInterceptor(
         options: const RetryOptions(
           retries: 0, // Number of retries before a failure
-          retryInterval: const Duration(seconds: 10), // Interval between each retry
+          retryInterval: const Duration(seconds: 1000000), // Interval between each retry
         )
     ));
+    _future =FetureBuilder();
     Wakelock.enable();
-    timer = Timer.periodic(Duration(seconds: 20), (Timer t) =>setstatefor());
-    UpdateTravelDetails();
+    timer = Timer.periodic(Duration(seconds: 20), (Timer t) => GetLocation());
   }
   @override
   void dispose() {
     timer?.cancel();
-    socket.disconnect();
-    socket.destroy();
-    SetDriverIsOnline('0');
+    socket.clearListeners();
     super.dispose();
   }
   final appbar = AppBar(
@@ -75,14 +70,13 @@ class StartOfWorkState extends State<StartOfWork> {
     return WillPopScope(child:
     Scaffold(
       body: new FutureBuilder(
-        future:_future ,
+        future:_future,
         builder: (BuildContext context, AsyncSnapshot snapshot) {
           if (snapshot.hasData){
-            print('Location' + PresentLoc);
-            Array = PresentLoc.split(',');
+            Array = Loca.split(',');
           }
           return snapshot.hasData ?  new Scaffold(
-              drawer: BuildDrawerLayout(context, Name, DriverNumber,PicrureUrl,'پایان کار'),
+              drawer: BuildDrawerLayout(context, Name, DriverNumber,PicrureUrl,'پایان کار',NatCode),
               appBar: appbar,
               body:  Center(
                 child: FlutterMap(
@@ -117,53 +111,35 @@ class StartOfWorkState extends State<StartOfWork> {
                   ],
                 ),
               )
-
-            ///start building your widget tree
           ) : new Center(child: CircularProgressIndicator(),);
-          ///load until snapshot.hasData resolves to true
         },),
     ), onWillPop: () => Future(() => false));
   }
-  // ignore: non_constant_identifier_names
-  UpdateTravelState(State) async {
-    print('UpdateIntravelStatefirstLine');
+    UpdateTravelState(State) async {
     FormData formData = FormData.fromMap({
       "DriverID":NatCode,
       "State":State,
     });
     try {
       Response response = await dio.post("https://sahandtehran.ir:3000/DriverMain/UpdateDriverTripState",data:formData);
-      print('UpdateDriver '+response.data.toString());
       if(response.data.toString() =="Updated"){
-        print('Ready TO Work Updated TO : : '+State);
       return true;
       }
     } catch (e) {
       print(e);
     }
   }
-  UpdateTravelDetails() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    NatCode = prefs.getString('NationalCode');
-    print('Worked');
-    await UpdateReadytoWork('1');
-    await UpdateTravelState('0');
-    await SetDriverIsOnline('1');
-    print('Worked2');
-  }
+
   UpdateLoc(Latlong) async {
-    print('aaaaaaa');
-    print(NatCode);
-    print(Latlong);
     FormData formData = FormData.fromMap({
       "DriverID":NatCode,
       "Latlong":Latlong,
     });
     try {
       Response response = await dio.post("https://sahandtehran.ir:3000/DriverMain/UpdateDriverLatLong",data:formData);
-      print('UpdateDriver'+response.toString());
       if(response.toString() =='Updated'){
-        print('LocUpdatedTTT');
+        setState(() {
+        });
         return true;
       }
     } catch (e) {
@@ -171,85 +147,75 @@ class StartOfWorkState extends State<StartOfWork> {
     }
   }
   FetureBuilder() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    NatCode = prefs.getString('NationalCode');
+     Numbr = prefs.getString('UserNumber');
+    await UpdateTravelStateoff('1');
+    await UpdateTravelState('0');
+    _ConnectSocket();
+    _ListenToDriverAccept();
     await GetLocation();
     await GetDriverData();
     return true;
   }
-  UpdateReadytoWork(State) async {
+  UpdateTravelStateoff(State) async {
     FormData formData = FormData.fromMap({
       "DriverID":NatCode,
       "State":State,
     });
     try {
-      Response response = await dio.post("https://sahandtehran.ir:3000/DriverMain/UpdateDriverReadyToWork",data:formData);
+      Response response = await dio.post('https://sahandtehran.ir:3000/DriverMain/UpdateDriverReadyToWork',data:formData);
       print('UpdateDriver'+response.toString());
       if(response.toString() =='Updated'){
-        print('Ready TO Work Updated TO : : '+State);
+        print('Worksss');
       }
     } catch (e) {
       print(e);
     }
   }
   GetDriverData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String Numbr = prefs.getString('UserNumber');
-    print('StartworkNumber' + Numbr);
     FormData formData = FormData.fromMap({
       "Number": Numbr,
     });
     try {
       Response response = await dio.post("https://sahandtehran.ir:3000/DriverMain/GetDriverData", data: formData);
-      print('StartworkResponse' + response.toString());
       Name = response.data['FName'] + ' ' + response.data['LName'];
       DriverNumber = response.data['MobileNo'];
       PicrureUrl = response.data['PicURL'];
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      NatCode = prefs.getString('NationalCode');
-      await  GetLocation();
-      print('NatCode' + NatCode +'  PicrureUrl'+PicrureUrl +'  DriverNumber'+DriverNumber +'   NameFamily'+Name);
-      print('Balalola');
       return true;
     } catch (e) {
       print('erererer '+e);
     }
   }
-  setstatefor(){
-    print('SetStateCalled');
-    setState(() {
-      GetLocation();
-    });
-  }
-  void GetNatCode() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    NatCode = prefs.getString('NationalCode');
-    GetLocation();
-  }
+
+//  void GetNatCode() async {
+//    SharedPreferences prefs = await SharedPreferences.getInstance();
+//    NatCode = prefs.getString('NationalCode');
+//  }
   _ConnectSocket() async {
     socket = io('https://sahandtehran.ir:3000', <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false, // optional
     });
-    socket.connect();
+    if(!socket.connected)
+    {
+      socket.connect();
+    }
     socket.on('connect', (_) {
       socket.emit('SubmitId',NatCode);
     });
+
   }
   _ListenToDriverAccept()  {
-    print('ListenStarted');
     socket.on('NewTripForDrivers', (data) =>
         GotoNext(data)
     );
   }
   void GotoNext(data) async {
-    print('Data::'+data.toString());
-      socket.close();
-      socket.destroy();
+    socket.clearListeners();
       Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) =>new Directionality(textDirection: TextDirection.rtl, child:  TravelRequest(data))),(Route<dynamic> route) => true);
-
   }
   Future GetLocation() async {
-
-    Location location = new Location();
     bool _serviceEnabled;
     PermissionStatus _permissionGranted;
     LocationData _locationData;
@@ -268,13 +234,9 @@ class StartOfWorkState extends State<StartOfWork> {
       }
     }
     _locationData = await location.getLocation();
-    var lat = _locationData.latitude;
-    var long = _locationData.longitude;
-    String retvalue = lat.toString() + ',' + long.toString();
-    Loca = retvalue;
+    Loca = _locationData.latitude.toString() + ',' + _locationData.longitude.toString();
      UpdateLoc(Loca);
-    PresentLoc = retvalue;
-    return retvalue;
+    return true;
   }
   SetDriverIsOnline(IsOnline) async {
     FormData formData = FormData.fromMap({
@@ -283,7 +245,6 @@ class StartOfWorkState extends State<StartOfWork> {
     });
     try {
       Response response = await dio.post("https://sahandtehran.ir:3000/DriverMain/UpdateDriverOnlineState", data: formData);
-      print(response);
       if(response.data.toString() == 'Updated'){
 
       }

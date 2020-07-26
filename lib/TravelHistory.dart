@@ -42,8 +42,6 @@ class TravelHistoryState extends State<TravelHistory>{
       future:_future ,
       builder: (BuildContext context, AsyncSnapshot snapshot) {
         var appscaffold;
-        print('SnapShotHasData');
-        print('data Datas='+data.toString());
       if(snapshot.hasData){
         if(Hasdataa == 'No'){
           appscaffold = Scaffold(
@@ -264,21 +262,16 @@ class TravelHistoryState extends State<TravelHistory>{
   GetItems() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
    String NatCode = prefs.getString('NationalCode');
-   print('NatCode'+NatCode);
     FormData formData = FormData.fromMap({
       "DriverID": NatCode,
     });
     try {
       Response response = await dio.post("https://sahandtehran.ir:3000/Ride/GetDriverRides", data: formData);
-      print(response);
       if(response.data.toString() == 'notFound'){
         Hasdataa = 'No';
         return false;
       }else{
         data = jsonDecode(response.data);
-        bool gettime = await GetDateTime();
-        print('RRRRRR');
-        print(data);
         return data;
       }
     } catch (e) {
@@ -298,19 +291,6 @@ class TravelHistoryState extends State<TravelHistory>{
 
   GotoDetails(TripId){
     Navigator.push(context, MaterialPageRoute(builder: (context) => new Directionality(textDirection: TextDirection.rtl, child:TravelDetails(TripId))));
-  }
-  GetDateTime() async {
-    FormData formData = FormData.fromMap({
-      "RequestType": 'Date',
-    });
-    try {
-      Response response = await dio.post("https://sahandtehran.ir:3000/DriverMain/GetDateTime", data: formData);
-      print('TimeResponse'+response.data.toString());
-      StartTime = response.data.toString();
-      return true;
-    } catch (e) {
-      print(e);
-    }
   }
 }
 
